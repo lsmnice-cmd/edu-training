@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>법정의무교육 이수 — 시청 및 서명</title>
+<style>
+  :root{
+    --navy:#15324f; --navy-2:#1f4e78; --line:#d7dee6; --bg:#eef2f6;
+    --ok:#1e7d4f; --ok-bg:#e4f3ea; --warn:#b4690e; --warn-bg:#fdf2e2;
+    --ink:#1a2733; --muted:#5c6b7a; --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Pretendard','맑은 고딕','Malgun Gothic',sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;padding:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto}
+  .top{background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:22px 24px}
+  .top h1{font-size:19px;font-weight:700;letter-spacing:-.3px}
+  .top p{font-size:13px;opacity:.85;margin-top:4px}
+  .demo-tag{display:inline-block;background:#c0392b;color:#fff;font-size:11px;font-weight:700;
+    padding:2px 9px;border-radius:5px;margin-bottom:8px;letter-spacing:.5px}
+  .card{background:var(--card);border:1px solid var(--line);border-top:none;padding:22px 24px}
+  .card:last-of-type{border-radius:0 0 14px 14px}
+  .sec-label{font-size:12px;font-weight:700;color:var(--navy-2);text-transform:uppercase;
+    letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .sec-label .n{background:var(--navy-2);color:#fff;width:20px;height:20px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
+  .field input,.field select{width:100%;padding:11px 13px;border:1px solid var(--line);
+    border-radius:9px;font-size:15px;font-family:inherit;background:#fbfcfd}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--navy-2);background:#fff}
+  .row{display:flex;gap:12px}.row .field{flex:1}
+  .video-shell{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
+  .video-shell #player{position:absolute;top:0;left:0;width:100%;height:100%}
+  .progress-wrap{margin-top:12px}
+  .bar{height:8px;background:#e3e9ef;border-radius:6px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--navy-2);transition:width .3s}
+  .progress-txt{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+  .skip-note{font-size:12px;color:var(--warn);background:var(--warn-bg);padding:9px 12px;
+    border-radius:8px;margin-top:10px;display:flex;gap:7px;align-items:flex-start}
+  .status{margin-top:14px;padding:12px 14px;border-radius:9px;font-size:14px;font-weight:600;
+    display:flex;align-items:center;gap:8px}
+  .status.wait{background:var(--warn-bg);color:var(--warn)}
+  .status.done{background:var(--ok-bg);color:var(--ok)}
+  .doc-check{display:flex;align-items:center;gap:10px;padding:12px;
+    border:1px dashed var(--line);border-radius:9px;font-size:14px}
+  .sign-box{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;position:relative}
+  .sign-box.locked{opacity:.45;pointer-events:none}
+  canvas{display:block;width:100%;height:180px;touch-action:none;background:
+    repeating-linear-gradient(0deg,transparent,transparent 35px,#f0f3f6 35px,#f0f3f6 36px)}
+  .sign-hint{position:absolute;top:50%;left:0;right:0;text-align:center;color:#b8c2cc;
+    font-size:14px;transform:translateY(-50%);pointer-events:none}
+  .sign-tools{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;
+    border-top:1px solid var(--line);background:#fafbfc}
+  .sign-tools span{font-size:12px;color:var(--muted)}
+  .btn-clear{background:none;border:1px solid var(--line);border-radius:7px;padding:5px 12px;
+    font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit}
+  .submit{width:100%;margin-top:8px;padding:16px;border:none;border-radius:11px;background:var(--navy);
+    color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:-.2px;transition:.2s}
+  .submit:disabled{background:#aeb9c4;cursor:not-allowed}
+  .submit:not(:disabled):hover{background:var(--navy-2)}
+  .result-msg{margin-top:14px;padding:14px;border-radius:9px;font-size:14px;display:none}
+  .result-msg.ok{background:var(--ok-bg);color:var(--ok);display:block}
+  .result-msg.err{background:#fbe6e6;color:#b03030;display:block}
+  .foot{text-align:center;font-size:11px;color:var(--muted);margin-top:18px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="demo-tag">예시 / DEMO</span>
+    <h1 id="eduTitle">직장 내 성희롱 예방교육</h1>
+    <p>아래 영상을 끝까지 시청한 뒤 서명하시면 이수 처리됩니다. (건너뛰기 불가)</p>
+  </div>
+
+  <div class="card">
+    <div class="sec-label"><span class="n">1</span> 수강자 정보</div>
+    <div class="row">
+      <div class="field"><label>성명</label>
+        <input id="name" type="text" placeholder="홍길동" autocomplete="off"></div>
+      <div class="field"><label>부서 / 사번</label>
+        <input id="dept" type="text" placeholder="생산1팀 / 1001" autocomplete="off"></div>
+    </div>
+    <div class="field"><label>교육 과목</label>
+      <select id="subject">
+        <option value="성희롱예방">직장 내 성희롱 예방교육</option>
+        <option value="괴롭힘예방">직장 내 괴롭힘 예방교육</option>
+        <option value="장애인인식개선">직장 내 장애인 인식개선 교육</option>
+        <option value="개인정보보호">개인정보보호 교육</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label"><span class="n">2</span> 교육 영상 시청</div>
+    <div class="video-shell"><div id="player"></div></div>
+    <div class="progress-wrap">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="progress-txt"><span id="progPct">시청 진행률 0%</span><span id="progTime">0:00 / 0:00</span></div>
+    </div>
+    <div class="skip-note">
+      <span>⚠</span><span>영상은 앞으로 건너뛸 수 없습니다. 건너뛰면 마지막 시청 지점으로 되돌아갑니다. 끝까지 보면 서명란이 열립니다.</span>
+    </div>
+    <div id="status" class="status wait">⏳ 영상 시청을 완료하면 서명란이 활성화됩니다.</div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      ※ <b>데모 안내</b>: 예시 기준값은 90%입니다. 영상이 길어 끝까지 보기 어렵다면 진행바가 90%를 넘는지로 동작을 확인하세요. 실제 운영 시 95~100%로 조정하세요.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="sec-label"><span class="n">3</span> 이수 확인 및 자필 서명</div>
+    <label class="doc-check" style="margin-bottom:12px">
+      <input type="checkbox" id="confirm" disabled>
+      <span>본인은 위 교육을 직접 끝까지 수강하였음을 확인합니다.</span>
+    </label>
+    <div id="signBox" class="sign-box locked">
+      <canvas id="pad"></canvas>
+      <div class="sign-hint" id="signHint">여기에 손가락 또는 마우스로 서명하세요</div>
+      <div class="sign-tools">
+        <span>아래 칸에 자필 서명</span>
+        <button class="btn-clear" id="clearSign" type="button">지우기</button>
+      </div>
+    </div>
+    <button id="submitBtn" class="submit" disabled>이수 완료 제출</button>
+    <div id="resultMsg" class="result-msg"></div>
+  </div>
+
+  <div class="foot">
+    이 페이지는 교육 이수 증빙용입니다. 제출 시 시청완료·서명·시각이 기록됩니다.<br>
+    ※ 산업안전보건교육은 본 페이지가 아닌 공단(edu.kosha.or.kr) 정식 과정으로 이수해야 합니다.
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbzW4zPN30SV33XJ1xE8TgRCFhRYxnZ6C9D0icOU6VjoNtPFAWoZdLYPcjzGH9aihxca/exec',
+  MEDIA: {
+    '성희롱예방':     { title:'직장 내 성희롱 예방교육',     youtube:'nuQJaAMNjhs' },
+    '괴롭힘예방':     { title:'직장 내 괴롭힘 예방교육',      youtube:'qcqjRb3m7k8' },
+    '장애인인식개선': { title:'직장 내 장애인 인식개선 교육', youtube:'nuQJaAMNjhs' },
+    '개인정보보호':   { title:'개인정보보호 교육',           youtube:'nuQJaAMNjhs' },
+  },
+  WATCH_THRESHOLD: 0.95,
+};
+
+const subjectSel=document.getElementById('subject');
+const barFill=document.getElementById('barFill');
+const progPct=document.getElementById('progPct');
+const progTime=document.getElementById('progTime');
+const statusEl=document.getElementById('status');
+const confirmChk=document.getElementById('confirm');
+const signBox=document.getElementById('signBox');
+const submitBtn=document.getElementById('submitBtn');
+
+let player,ytReady=false,maxWatched=0,duration=0,watched=false,watchSeconds=0,pollTimer=null;
+
+const tag=document.createElement('script');
+tag.src='https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+
+window.onYouTubeIframeAPIReady=function(){
+  player=new YT.Player('player',{
+    videoId:CONFIG.MEDIA[subjectSel.value].youtube,
+    playerVars:{rel:0,modestbranding:1,controls:1,disablekb:1},
+    events:{'onReady':onReady,'onStateChange':onState}
+  });
+};
+function onReady(){ ytReady=true; duration=player.getDuration(); startPoll(); }
+function onState(e){
+  if(e.data===YT.PlayerState.PLAYING){ duration=player.getDuration()||duration; startPoll(); }
+  if(e.data===YT.PlayerState.ENDED){ maxWatched=duration; checkComplete(); updateProgress(); }
+}
+function startPoll(){
+  if(pollTimer) return;
+  pollTimer=setInterval(()=>{
+    if(!ytReady||!player.getCurrentTime) return;
+    const t=player.getCurrentTime();
+    if(!duration||isNaN(duration)) duration=player.getDuration()||0;
+    if(t>maxWatched+1.5){ player.seekTo(maxWatched,true); }
+    else { maxWatched=Math.max(maxWatched,t); }
+    watchSeconds=Math.floor(maxWatched);
+    updateProgress();
+  },1000);
+}
+function fmt(t){ if(isNaN(t)||!t)return '0:00'; const m=Math.floor(t/60),s=Math.floor(t%60); return m+':'+(s<10?'0':'')+s; }
+function updateProgress(){
+  const pct=duration?Math.min(100,Math.round(maxWatched/duration*100)):0;
+  barFill.style.width=pct+'%';
+  progPct.textContent='시청 진행률 '+pct+'%';
+  progTime.textContent=fmt(maxWatched)+' / '+fmt(duration);
+  if(duration&&maxWatched/duration>=CONFIG.WATCH_THRESHOLD) checkComplete();
+}
+
+subjectSel.addEventListener('change',()=>{
+  const m=CONFIG.MEDIA[subjectSel.value];
+  document.getElementById('eduTitle').textContent=m.title;
+  maxWatched=0; watched=false; duration=0;
+  resetCompletion();
+  if(ytReady&&player.loadVideoById){ player.loadVideoById(m.youtube); player.pauseVideo(); }
+});
+
+function resetCompletion(){
+  watched=false;
+  statusEl.className='status wait';
+  statusEl.textContent='⏳ 영상 시청을 완료하면 서명란이 활성화됩니다.';
+  confirmChk.checked=false; confirmChk.disabled=true;
+  signBox.classList.add('locked'); clearPad();
+  refreshSubmit();
+}
+function checkComplete(){
+  if(watched) return;
+  watched=true;
+  statusEl.className='status done';
+  statusEl.textContent='✅ 영상 시청 완료 — 아래에서 확인 체크 후 서명하세요.';
+  confirmChk.disabled=false;
+  refreshSubmit();
+}
+confirmChk.addEventListener('change',()=>{
+  if(confirmChk.checked) signBox.classList.remove('locked');
+  else signBox.classList.add('locked');
+  refreshSubmit();
+});
+
+const canvas=document.getElementById('pad');
+const ctx=canvas.getContext('2d');
+const signHint=document.getElementById('signHint');
+let drawing=false,hasSign=false;
+function sizeCanvas(){
+  const r=canvas.getBoundingClientRect();
+  const ratio=window.devicePixelRatio||1;
+  canvas.width=r.width*ratio; canvas.height=r.height*ratio;
+  ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#15324f';
+}
+function pos(e){ const r=canvas.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return {x:p.clientX-r.left,y:p.clientY-r.top}; }
+function start(e){ drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); signHint.style.display='none'; hasSign=true; e.preventDefault(); }
+function move(e){ if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); e.preventDefault(); refreshSubmit(); }
+function endDraw(){ drawing=false; refreshSubmit(); }
+canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',endDraw);
+canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',endDraw);
+function clearPad(){ ctx.clearRect(0,0,canvas.width,canvas.height); hasSign=false; signHint.style.display='block'; refreshSubmit(); }
+document.getElementById('clearSign').addEventListener('click',clearPad);
+
+const nameEl=document.getElementById('name'),deptEl=document.getElementById('dept');
+[nameEl,deptEl].forEach(el=>el.addEventListener('input',refreshSubmit));
+function refreshSubmit(){ submitBtn.disabled=!(watched&&confirmChk.checked&&hasSign&&nameEl.value.trim()); }
+
+submitBtn.addEventListener('click',async()=>{
+  submitBtn.disabled=true; submitBtn.textContent='제출 중...';
+  const payload={name:nameEl.value.trim(),dept:deptEl.value.trim(),subject:subjectSel.value,
+    watched:watched,watchSeconds:watchSeconds,signature:canvas.toDataURL('image/png'),ua:navigator.userAgent};
+  const msg=document.getElementById('resultMsg');
+  if(!CONFIG.GAS_URL||CONFIG.GAS_URL.indexOf('YOUR_')===0){
+    msg.className='result-msg ok';
+    msg.textContent='✅ [데모] 제출 동작이 확인되었습니다. 실제 기록은 GAS_URL 설정 후 구글 시트에 저장됩니다.';
+    submitBtn.textContent='제출 완료(데모)'; return;
+  }
+  try{
+    await fetch(CONFIG.GAS_URL,{method:'POST',mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    msg.className='result-msg ok'; msg.textContent='✅ 이수 기록이 제출되었습니다. 수고하셨습니다.';
+    submitBtn.textContent='제출 완료';
+  }catch(err){
+    msg.className='result-msg err'; msg.textContent='제출 중 오류가 발생했습니다. 담당자에게 문의하세요. ('+err+')';
+    submitBtn.disabled=false; submitBtn.textContent='이수 완료 제출';
+  }
+});
+
+window.addEventListener('load',sizeCanvas);
+window.addEventListener('resize',sizeCanvas);
+</script>
+</body>
+</html>
