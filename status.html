@@ -71,11 +71,13 @@
     <div class="state"><div class="spinner"></div>이수 현황을 불러오는 중입니다…</div>
   </div>
 
-  <!-- 이름 파라미터가 없을 때 직접 입력 -->
+  <!-- 본인 인증 (이름 + 생년월일) -->
   <div id="askBox" class="ask" style="display:none">
-    <label>본인 이름을 입력하세요</label>
-    <input id="askName" type="text" placeholder="홍길동" autocomplete="off">
-    <button id="askBtn">내 현황 보기</button>
+    <label>본인 이름</label>
+    <input id="askName" type="text" placeholder="이름" autocomplete="off">
+    <label style="margin-top:10px">생년월일 (예: 1985-03-15)</label>
+    <input id="askBirth" type="text" placeholder="YYYY-MM-DD" autocomplete="off" inputmode="numeric">
+    <button id="askBtn">본인 확인 후 현황 보기</button>
   </div>
 
   <div class="foot">
@@ -158,47 +160,61 @@ function showError(msg){
   document.getElementById('content').innerHTML = `<div class="err">${msg}</div>`;
 }
 
-function load(name){
-  CURRENT.name = name;   // 수강 링크에 쓸 이름 저장
+function load(name, birth){
+  CURRENT.name = name;
+  CURRENT.birth = birth || '';
   document.getElementById('askBox').style.display='none';
+  document.getElementById('content').innerHTML=
+    '<div class="state"><div class="spinner"></div>본인 확인 중입니다…</div>';
   if(!CONFIG.GAS_URL || CONFIG.GAS_URL.indexOf('YOUR_')===0){
-    // 데모: 샘플 데이터
-    render({name:name||'홍길동',total:4,done:2,remaining:2,percent:50,
+    render({name:name||'홍길동',birth:birth,total:4,done:2,remaining:2,percent:50,
       subjects:[{name:'성희롱',done:true},{name:'장애인',done:true},
                 {name:'개인정보',done:false},{name:'괴롭힘',done:false}]});
     return;
   }
-  // JSONP로 조회 (CORS 회피)
   const cb='__eduCb'+Date.now();
   window[cb]=function(res){
-    if(res && res.ok) render(res);
-    else showError((res&&res.msg)||'조회에 실패했습니다.');
+    if(res && res.ok){ if(res.birth) CURRENT.birth=res.birth; render(res); }
+    else { showAuth((res&&res.msg)||'본인 확인에 실패했습니다.'); }
     delete window[cb];
   };
   const s=document.createElement('script');
-  s.src=CONFIG.GAS_URL+'?name='+encodeURIComponent(name)+'&callback='+cb;
-  s.onerror=()=>showError('서버 연결에 실패했습니다. 잠시 후 다시 시도하세요.');
+  s.src=CONFIG.GAS_URL+'?name='+encodeURIComponent(name)
+        +'&birth='+encodeURIComponent(birth||'')+'&callback='+cb;
+  s.onerror=()=>showAuth('서버 연결에 실패했습니다. 잠시 후 다시 시도하세요.');
   document.body.appendChild(s);
 }
 
-/* 시작: ?name= 있으면 바로 조회, 없으면 입력창 */
+/** 인증 입력창 표시 (메시지 포함) */
+function showAuth(msg){
+  document.getElementById('title').textContent='본인 확인';
+  document.getElementById('content').innerHTML = msg
+    ? '<div class="err" style="margin:14px 0 0">'+msg+'</div>' : '';
+  const box=document.getElementById('askBox');
+  box.style.display='block';
+  // 이름이 링크로 들어와 있으면 미리 채워줌(생년월일만 입력)
+  if(CURRENT.name) document.getElementById('askName').value=CURRENT.name;
+  bindAuth();
+}
+
+function bindAuth(){
+  const go=function(){
+    const nm=document.getElementById('askName').value.trim();
+    const bt=document.getElementById('askBirth').value.trim();
+    if(!nm){ alert('이름을 입력하세요'); return; }
+    if(!bt){ alert('생년월일을 입력하세요'); return; }
+    load(nm, bt);
+  };
+  document.getElementById('askBtn').onclick=go;
+  document.getElementById('askBirth').onkeydown=function(e){ if(e.key==='Enter') go(); };
+}
+
+/* 시작: 항상 본인 인증(이름+생년월일)부터. 링크의 이름은 미리 채워줌 */
 window.addEventListener('load',()=>{
   const name=getParam('name');
-  const birth=getParam('birth');
-  if(birth) CURRENT.birth=birth;   // 생년월일을 수강 링크에 전달하기 위해 저장
-  if(name){ CURRENT.name=name; load(name); }
-  else{
-    document.getElementById('title').textContent='이름을 입력하세요';
-    document.getElementById('content').innerHTML='';
-    document.getElementById('askBox').style.display='block';
-    document.getElementById('askBtn').addEventListener('click',()=>{
-      const v=document.getElementById('askName').value.trim();
-      if(v) load(v);
-    });
-    document.getElementById('askName').addEventListener('keydown',e=>{
-      if(e.key==='Enter'){ const v=e.target.value.trim(); if(v) load(v); }
-    });
-  }
+  if(name) CURRENT.name=name;
+  document.getElementById('content').innerHTML='';
+  showAuth('');   // 인증 입력창 표시
 });
 </script>
 </body>
