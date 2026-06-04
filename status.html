@@ -46,6 +46,20 @@
   .go{display:inline-block;background:var(--navy);color:#fff;text-decoration:none;
     font-size:12px;font-weight:700;padding:7px 13px;border-radius:8px;white-space:nowrap}
   .go:active{background:var(--navy-2)}
+  .go.up{background:#0563c1;border:none;cursor:pointer;font-family:inherit}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
+    align-items:center;justify-content:center;z-index:50;padding:18px}
+  .modal.on{display:flex}
+  .modal-box{background:#fff;border-radius:14px;padding:22px;max-width:380px;width:100%}
+  .modal-box h3{font-size:16px;color:#15324f;margin-bottom:6px}
+  .modal-box p{font-size:13px;color:#6a7886;margin-bottom:14px}
+  .modal-box input[type=file]{width:100%;font-size:13px;margin-bottom:14px}
+  .modal-box .mbtn{display:flex;gap:8px}
+  .modal-box button{flex:1;padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:700;font-family:inherit;cursor:pointer}
+  .modal-box .ok{background:#15324f;color:#fff}
+  .modal-box .cancel{background:#eef2f6;color:#5c6b7a}
+  #upMsg{font-size:13px;margin-top:10px;text-align:center}
 
   .state{padding:60px 24px;text-align:center;color:var(--muted);font-size:14px}
   .spinner{width:30px;height:30px;border:3px solid #d7dee6;border-top-color:var(--navy-2);
@@ -86,6 +100,20 @@
   </div>
 </div>
 
+<!-- 산안 수료증 제출 모달 -->
+<div class="modal" id="upModal">
+  <div class="modal-box">
+    <h3 id="upTitle">수료증 제출</h3>
+    <p>공단에서 받은 수료증 파일(PDF·이미지)을 첨부하세요. 제출하면 이수 완료로 표시됩니다.</p>
+    <input type="file" id="upFile" accept=".pdf,.jpg,.jpeg,.png">
+    <div class="mbtn">
+      <button class="cancel" onclick="closeUpload()">취소</button>
+      <button class="ok" id="upOk" onclick="submitUpload()">제출</button>
+    </div>
+    <div id="upMsg"></div>
+  </div>
+</div>
+
 <script>
 /* ===== 설정 ===== */
 const CONFIG = {
@@ -100,6 +128,18 @@ const CONFIG = {
     '산안(상)':'산업안전보건', '산안(하)':'산업안전보건',
     '퇴직연금':'퇴직연금'
   },
+  // 화면에 길게 표시할 이름 (시트 헤더는 그대로 두고 표시만)
+  DISPLAY_NAME: {
+    '산안(상)':'산업안전보건교육 (상반기)',
+    '산안(하)':'산업안전보건교육 (하반기)',
+    '성희롱':'직장 내 성희롱 예방교육',
+    '장애인':'직장 내 장애인 인식개선 교육',
+    '개인정보':'개인정보보호 교육',
+    '퇴직연금':'퇴직연금 교육',
+    '괴롭힘':'직장 내 괴롭힘 예방교육'
+  },
+  // 산안 과목(수료증 업로드 대상) → part 코드
+  KOSHA_PART: { '산안(상)':'sang', '산안(하)':'ha' },
 };
 
 function getParam(k){ return new URLSearchParams(location.search).get(k); }
@@ -121,22 +161,28 @@ function render(d){
   document.getElementById('title').textContent = d.name + '님';
   let rows='';
   d.subjects.forEach(s=>{
+    const disp = CONFIG.DISPLAY_NAME[s.name] || s.name;   // 화면 표시명(길게)
+    const koshaPart = CONFIG.KOSHA_PART[s.name];          // 산안이면 part 코드
     if(s.done){
       rows+=`<div class="row">
         <div class="badge done">✓</div>
-        <div class="nm">${s.name}</div>
+        <div class="nm">${disp}</div>
         <div class="st done">이수 완료</div></div>`;
     } else {
       const code = CONFIG.SUBJECT_CODE[s.name] || '';
-      // 교육 페이지로 이름·생년월일을 함께 넘겨 자동 입력되게 함
       const nameQ = encodeURIComponent(CURRENT.name || '');
       const birthQ = encodeURIComponent(CURRENT.birth || '');
       let link = CONFIG.EDU_PAGE + '?name=' + nameQ + '&birth=' + birthQ;
       if(code) link += '&subject=' + encodeURIComponent(code);
+      // 산안 과목: '수강하기'(공단 안내) + '수료증 제출' 버튼
+      let btns = `<a class="go" href="${link}">수강하기 ›</a>`;
+      if(koshaPart){
+        btns += ` <button class="go up" onclick="openUpload('${koshaPart}','${disp.replace(/'/g,"")}')">수료증 제출</button>`;
+      }
       rows+=`<div class="row">
         <div class="badge todo">!</div>
-        <div class="nm">${s.name}</div>
-        <a class="go" href="${link}">수강하기 ›</a></div>`;
+        <div class="nm">${disp}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${btns}</div></div>`;
     }
   });
   const restTxt = d.remaining>0
@@ -216,6 +262,48 @@ window.addEventListener('load',()=>{
   document.getElementById('content').innerHTML='';
   showAuth('');   // 인증 입력창 표시
 });
+
+/* ===== 산안 수료증 업로드 ===== */
+let UP_PART='';
+function openUpload(part, dispName){
+  UP_PART=part;
+  document.getElementById('upTitle').textContent=(dispName||'산업안전보건교육')+' 수료증 제출';
+  document.getElementById('upFile').value='';
+  document.getElementById('upMsg').textContent='';
+  document.getElementById('upOk').disabled=false;
+  document.getElementById('upOk').textContent='제출';
+  document.getElementById('upModal').classList.add('on');
+}
+function closeUpload(){ document.getElementById('upModal').classList.remove('on'); }
+
+function submitUpload(){
+  const f=document.getElementById('upFile').files[0];
+  const msg=document.getElementById('upMsg');
+  if(!f){ msg.style.color='#b03030'; msg.textContent='파일을 선택하세요.'; return; }
+  if(f.size>10*1024*1024){ msg.style.color='#b03030'; msg.textContent='10MB 이하 파일만 가능합니다.'; return; }
+  const okBtn=document.getElementById('upOk');
+  okBtn.disabled=true; okBtn.textContent='업로드 중...';
+  const reader=new FileReader();
+  reader.onload=function(){
+    const b64=String(reader.result).split(',')[1];
+    const payload={ action:'koshaCert', name:CURRENT.name, birth:CURRENT.birth,
+      part:UP_PART, fileName:f.name, mimeType:f.type, fileData:b64 };
+    fetch(CONFIG.GAS_URL,{method:'POST',mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)})
+      .then(function(){
+        msg.style.color='#1e7d4f';
+        msg.textContent='제출되었습니다. 잠시 후 현황에 반영됩니다.';
+        okBtn.textContent='제출 완료';
+        setTimeout(function(){ closeUpload(); load(CURRENT.name, CURRENT.birth); }, 1500);
+      })
+      .catch(function(e){
+        msg.style.color='#b03030'; msg.textContent='업로드 실패: '+e;
+        okBtn.disabled=false; okBtn.textContent='제출';
+      });
+  };
+  reader.readAsDataURL(f);
+}
 </script>
 </body>
 </html>
