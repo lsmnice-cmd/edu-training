@@ -87,8 +87,8 @@
       <div class="field"><label>생년월일</label>
         <input id="dept" type="text" placeholder="예: 1985-03-15" autocomplete="off"></div>
     </div>
-    <div class="field"><label>교육 과목</label>
-      <select id="subject">
+    <div class="field"><label>교육 과목 <span style="font-weight:400;color:var(--muted)">(지정된 과목)</span></label>
+      <select id="subject" style="background:#eef2f6;color:#1a2733">
         <option value="성희롱예방">직장 내 성희롱 예방교육</option>
         <option value="괴롭힘예방">직장 내 괴롭힘 예방교육</option>
         <option value="장애인인식개선">직장 내 장애인 인식개선 교육</option>
@@ -193,6 +193,15 @@ document.head.appendChild(tag);
     } else if(p && CONFIG.MEDIA[p]){
       subjectSel.value=p;
       document.getElementById('eduTitle').textContent=CONFIG.MEDIA[p].title;
+    }
+    // 과목이 링크로 지정되면 변경 불가로 잠금
+    if(p){
+      const locked=subjectSel.value;
+      subjectSel.addEventListener('mousedown',function(ev){ ev.preventDefault(); });
+      subjectSel.addEventListener('change',function(){
+        if(subjectSel.value!==locked){ subjectSel.value=locked; }
+      });
+      subjectSel.title='지정된 과목은 변경할 수 없습니다.';
     }
   }catch(e){}
 })();
